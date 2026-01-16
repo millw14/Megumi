@@ -1,4 +1,4 @@
-# 👁️ MEGUMI
+# MEGUMI
 
 ```
 ███╗   ███╗███████╗ ██████╗ ██╗   ██╗███╗   ███╗██╗
@@ -7,7 +7,7 @@
 ██║╚██╔╝██║██╔══╝  ██║   ██║██║   ██║██║╚██╔╝██║██║
 ██║ ╚═╝ ██║███████╗╚██████╔╝╚██████╔╝██║ ╚═╝ ██║██║
 ╚═╝     ╚═╝╚══════╝ ╚═════╝  ╚═════╝ ╚═╝     ╚═╝╚═╝
-        ～ She's always watching ～
+        ~ She's always watching ~
 ```
 
 <p align="center">
@@ -27,46 +27,46 @@
 
 ---
 
-## 🌸 What is Megumi?
+## What is Megumi?
 
 **Megumi** is an AI-powered desktop companion that:
 
-- 👀 **Watches** everything you do on your computer
-- 🧠 **Learns** your behavioral patterns and workflows
-- 🤖 **Mimics** your activities even when you're offline
-- ✨ **Lives** on your desktop as an adorable VRM avatar
+- **Watches** everything you do on your computer
+- **Learns** your behavioral patterns and workflows
+- **Mimics** your activities even when you're offline
+- **Lives** on your desktop as an adorable VRM avatar
 
 She's not just a cute anime girl floating on your screen—she's learning *you*.
 
 ---
 
-## ✨ Features
+## Features
 
 ### Currently Implemented
 
 | Feature | Status | Description |
 |---------|--------|-------------|
-| 🎭 **VRM Avatar** | ✅ Done | High-quality 3D anime character |
-| 👁️ **Cursor Tracking** | ✅ Done | Eyes and head follow your cursor |
-| 🫧 **Idle Animations** | ✅ Done | Breathing, blinking, subtle movements |
-| 🖥️ **Always-on-Top** | ✅ Done | Floats over all windows |
-| 🎨 **Transparent Background** | ✅ Done | Only the character is visible |
-| 🖱️ **Draggable** | ✅ Done | Move her anywhere on screen |
-| 📍 **Quick Positions** | ✅ Done | Right-click to snap to corners |
+| **VRM Avatar** | Done | High-quality 3D anime character |
+| **Cursor Tracking** | Done | Eyes and head follow your cursor |
+| **Idle Animations** | Done | Breathing, blinking, subtle movements |
+| **Always-on-Top** | Done | Floats over all windows |
+| **Transparent Background** | Done | Only the character is visible |
+| **Draggable** | Done | Move her anywhere on screen |
+| **Quick Positions** | Done | Right-click to snap to corners |
 
 ### Coming Soon
 
 | Feature | Phase | Description |
 |---------|-------|-------------|
-| 📸 **Screen Capture** | Phase 2 | Real-time screen monitoring |
-| 📝 **OCR Recognition** | Phase 2 | Read text from screen |
-| 🎯 **UI Detection** | Phase 3 | Identify buttons, inputs, windows |
-| 🧠 **Pattern Learning** | Phase 4 | Understand your workflows |
-| 🤖 **Activity Mimicking** | Phase 5 | Replay your actions autonomously |
+| **Screen Capture** | Phase 2 | Real-time screen monitoring |
+| **OCR Recognition** | Phase 2 | Read text from screen |
+| **UI Detection** | Phase 3 | Identify buttons, inputs, windows |
+| **Pattern Learning** | Phase 4 | Understand your workflows |
+| **Activity Mimicking** | Phase 5 | Replay your actions autonomously |
 
 ---
 
-## 🚀 Installation
+## Installation
 
 ### Prerequisites
 
@@ -78,7 +78,7 @@ She's not just a cute anime girl floating on your screen—she's learning *you*.
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/megumi.git
+git clone https://github.com/millw14/Megumi.git
 cd megumi
 
 # Create virtual environment
@@ -94,7 +94,7 @@ python run.py
 
 ---
 
-## 🎮 Usage
+## Usage
 
 ### Basic Controls
 
@@ -102,7 +102,7 @@ python run.py
 |--------|-----|
 | **Move** | Click and drag |
 | **Menu** | Right-click |
-| **Quit** | Right-click → Quit |
+| **Quit** | Right-click > Quit |
 
 ### Right-Click Menu Options
 
@@ -113,9 +113,9 @@ python run.py
 
 ---
 
-## 🗺️ Roadmap
+## Roadmap
 
-### Phase 1: Kawaii Desktop Body ✅
+### Phase 1: Kawaii Desktop Body [COMPLETE]
 > *Give her a body to exist*
 
 - [x] Floating transparent window
@@ -124,7 +124,7 @@ python run.py
 - [x] Idle animations (breathing, blinking)
 - [x] Draggable with context menu
 
-### Phase 2: Eyes of Waifu 🔄
+### Phase 2: Eyes of Waifu [IN PROGRESS]
 > *Let her see the world*
 
 - [ ] Real-time screen capture
@@ -132,7 +132,7 @@ python run.py
 - [ ] OCR text recognition
 - [ ] Visual change detection
 
-### Phase 3: Understanding Senpai 📋
+### Phase 3: Understanding Senpai
 > *Make her understand what she sees*
 
 - [ ] UI element detection (buttons, text fields)
@@ -140,7 +140,7 @@ python run.py
 - [ ] Application recognition
 - [ ] Context awareness
 
-### Phase 4: Pattern Learning 🧠
+### Phase 4: Pattern Learning
 > *Let her learn your ways*
 
 - [ ] Activity sequence recording
@@ -148,7 +148,7 @@ python run.py
 - [ ] Workflow modeling
 - [ ] Behavior prediction
 
-### Phase 5: Mimicry Mode 🎭
+### Phase 5: Mimicry Mode
 > *Watch her become you*
 
 - [ ] Autonomous action execution
@@ -158,7 +158,7 @@ python run.py
 
 ---
 
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 megumi/
@@ -191,31 +191,31 @@ megumi/
 
 ---
 
-## ⚠️ Safety Features
+## Safety Features
 
 Megumi is designed with safety in mind:
 
-- 🔒 **Read-Only Mode** — Can observe without acting
-- ✅ **Action Whitelist** — Only approved actions allowed
-- 🛑 **Kill Switch** — Instant termination hotkey
-- 📋 **Action Logging** — Everything is recorded
-- 🚫 **Sensitive Area Blocking** — Won't touch banking/passwords
+- **Read-Only Mode** — Can observe without acting
+- **Action Whitelist** — Only approved actions allowed
+- **Kill Switch** — Instant termination hotkey
+- **Action Logging** — Everything is recorded
+- **Sensitive Area Blocking** — Won't touch banking/passwords
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please read our [Contributing Guidelines](docs/CONTRIBUTING.md) first.
 
 ---
 
-## 📜 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 💕 Credits
+## Credits
 
 - VRM Model: Community contribution
 - Three.js & @pixiv/three-vrm for 3D rendering
@@ -228,5 +228,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 </p>
 
 <p align="center">
-  Made with 💜 by the Megumi Project
+  Made by the Megumi Project
 </p>
