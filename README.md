@@ -33,10 +33,13 @@
 
 - **Watches** everything you do on your computer
 - **Learns** your behavioral patterns and workflows
+- **Remembers** everything in a local database
 - **Mimics** your activities even when you're offline
 - **Lives** on your desktop as an adorable VRM avatar
 
 She's not just a cute anime girl floating on your screen—she's learning *you*.
+
+Everything she observes gets stored locally. Your patterns, your workflows, your habits—all saved to a database so she can learn and eventually act on your behalf.
 
 ---
 
@@ -53,6 +56,7 @@ She's not just a cute anime girl floating on your screen—she's learning *you*.
 | **Transparent Background** | Done | Only the character is visible |
 | **Draggable** | Done | Move her anywhere on screen |
 | **Quick Positions** | Done | Right-click to snap to corners |
+| **Local Database** | Done | Stores all observations locally |
 
 ### Coming Soon
 
@@ -171,11 +175,16 @@ megumi/
 │   │   └── megumi.vrm       # The VRM avatar
 │   └── screenshots/          # For documentation
 │
+├── data/
+│   ├── megumi.db            # SQLite database (auto-created)
+│   └── patterns/            # Learned pattern files
+│
 ├── megumi/                   # Main package
 │   ├── core/
 │   │   ├── watcher.py       # Screen monitoring
 │   │   ├── learner.py       # Pattern recognition
-│   │   └── mimic.py         # Activity mimicking
+│   │   ├── mimic.py         # Activity mimicking
+│   │   └── database.py      # Database operations
 │   ├── ui/
 │   │   ├── widget.py        # Desktop widget
 │   │   └── viewer.html      # VRM renderer
