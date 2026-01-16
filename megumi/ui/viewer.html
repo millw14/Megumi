@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Megumi</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { 
+            overflow: hidden;
+            background: transparent;
+            width: 100%;
+            height: 100%;
+        }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+            "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@2.1.0/lib/three-vrm.module.min.js"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+
+        // State
+        let scene, camera, renderer, currentVrm, clock;
+        let mouseX = 0, mouseY = 0;
+        let time = 0;
+        let blinkTimer = 0;
+        let nextBlink = 3;
+
+        // Initialize
+        init();
+
+        function init() {
+            clock = new THREE.Clock();
+
+            // Scene (transparent)
+            scene = new THREE.Scene();
+
+            // Renderer (transparent)
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+            renderer.setClearColor(0x000000, 0);
+            document.body.appendChild(renderer.domElement);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(25, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 0.9, 4.5);
+
+            // Lighting
+            scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+            const frontLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            frontLight.position.set(0, 1, 2);
+            scene.add(frontLight);
+
+            // Load VRM
+            const loader = new GLTFLoader();
+            loader.register((parser) => new VRMLoaderPlugin(parser));
+
+            loader.load('assets/models/megumi.vrm',
+                (gltf) => {
+                    const vrm = gltf.userData.vrm;
+                    currentVrm = vrm;
+                    scene.add(vrm.scene);
+
+                    VRMUtils.rotateVRM0(vrm);
+
+                    // Ground the model
+                    const box = new THREE.Box3().setFromObject(vrm.scene);
+                    vrm.scene.position.y = -box.min.y;
+
+                    // Fix materials
+                    vrm.scene.traverse((obj) => {
+                        if (obj.isMesh || obj.isSkinnedMesh) {
+                            obj.frustumCulled = false;
+                            if (obj.material) {
+                                obj.material.side = THREE.DoubleSide;
+                                obj.material.needsUpdate = true;
+                            }
+                        }
+                    });
+
+                    // Add shadow
+                    const shadowGeo = new THREE.CircleGeometry(0.4, 32);
+                    const shadowMat = new THREE.MeshBasicMaterial({
+                        color: 0x000000,
+                        transparent: true,
+                        opacity: 0.25,
+                        side: THREE.DoubleSide
+                    });
+                    const shadow = new THREE.Mesh(shadowGeo, shadowMat);
+                    shadow.rotation.x = -Math.PI / 2;
+                    shadow.position.y = 0.01;
+                    scene.add(shadow);
+
+                    console.log('Megumi loaded!');
+                    animate();
+                },
+                (progress) => {
+                    if (progress.total) {
+                        console.log(`Loading: ${Math.round(progress.loaded / progress.total * 100)}%`);
+                    }
+                },
+                (error) => {
+                    console.error('Failed to load Megumi:', error);
+                }
+            );
+
+            // Resize handler
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            // Local mouse (fallback)
+            window.addEventListener('mousemove', (e) => {
+                mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+                mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+            });
+
+            // Global mouse (from Python)
+            window.setGlobalMouse = (x, y) => {
+                mouseX = x;
+                mouseY = y;
+            };
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const dt = clock.getDelta();
+            time += dt;
+            blinkTimer += dt;
+
+            if (currentVrm) {
+                const humanoid = currentVrm.humanoid;
+                const em = currentVrm.expressionManager;
+
+                // === IDLE ANIMATIONS ===
+                
+                // Arms relaxed
+                const leftArm = humanoid?.getNormalizedBoneNode('leftUpperArm');
+                const rightArm = humanoid?.getNormalizedBoneNode('rightUpperArm');
+                const leftLower = humanoid?.getNormalizedBoneNode('leftLowerArm');
+                const rightLower = humanoid?.getNormalizedBoneNode('rightLowerArm');
+
+                const armSwing = Math.sin(time * 0.8) * 0.03;
+                
+                if (leftArm) {
+                    leftArm.rotation.z = THREE.MathUtils.lerp(leftArm.rotation.z, 1.1 + armSwing, 0.02);
+                    leftArm.rotation.x = THREE.MathUtils.lerp(leftArm.rotation.x, 0.2, 0.02);
+                }
+                if (rightArm) {
+                    rightArm.rotation.z = THREE.MathUtils.lerp(rightArm.rotation.z, -1.1 - armSwing, 0.02);
+                    rightArm.rotation.x = THREE.MathUtils.lerp(rightArm.rotation.x, 0.2, 0.02);
+                }
+                if (leftLower) leftLower.rotation.y = THREE.MathUtils.lerp(leftLower.rotation.y, -0.2, 0.02);
+                if (rightLower) rightLower.rotation.y = THREE.MathUtils.lerp(rightLower.rotation.y, 0.2, 0.02);
+
+                // Breathing
+                const spine = humanoid?.getNormalizedBoneNode('spine');
+                const chest = humanoid?.getNormalizedBoneNode('chest');
+                
+                if (spine) {
+                    spine.rotation.x = Math.sin(time * 1.2) * 0.008;
+                    spine.rotation.y = THREE.MathUtils.lerp(spine.rotation.y, mouseX * 0.08, 0.08);
+                }
+                if (chest) {
+                    chest.rotation.x = Math.sin(time * 1.2) * 0.01;
+                    chest.rotation.y = THREE.MathUtils.lerp(chest.rotation.y, mouseX * 0.05, 0.08);
+                }
+
+                // Body sway
+                const hips = humanoid?.getNormalizedBoneNode('hips');
+                if (hips) hips.rotation.y = Math.sin(time * 0.4) * 0.01;
+
+                // === BLINKING ===
+                if (blinkTimer >= nextBlink && em) {
+                    blinkTimer = 0;
+                    nextBlink = 2 + Math.random() * 4;
+                    doBlink(em);
+                }
+
+                // === CURSOR TRACKING ===
+                // Head follows cursor
+                const head = humanoid?.getNormalizedBoneNode('head');
+                const neck = humanoid?.getNormalizedBoneNode('neck');
+
+                // Direct look at cursor position
+                // mouseX: -1 left, +1 right | mouseY: -1 bottom, +1 top
+                const headRotY = mouseX * 0.4;      // Turn head toward cursor X
+                const headRotX = -mouseY * 0.25;    // Tilt head toward cursor Y (inverted)
+                const neckRotY = mouseX * 0.15;
+                const neckRotX = -mouseY * 0.1;
+
+                if (head) {
+                    head.rotation.x = THREE.MathUtils.lerp(head.rotation.x, headRotX, 0.15);
+                    head.rotation.y = THREE.MathUtils.lerp(head.rotation.y, headRotY, 0.15);
+                }
+                if (neck) {
+                    neck.rotation.x = THREE.MathUtils.lerp(neck.rotation.x, neckRotX, 0.12);
+                    neck.rotation.y = THREE.MathUtils.lerp(neck.rotation.y, neckRotY, 0.12);
+                }
+
+                // Eye tracking via VRM lookAt
+                if (currentVrm.lookAt) {
+                    try {
+                        // Eyes look at a point in 3D space based on cursor
+                        const lookTarget = new THREE.Vector3(
+                            mouseX * 2,           // X position
+                            1.0 - mouseY * 0.5,   // Y position (inverted for natural look)
+                            3                     // Z distance
+                        );
+                        currentVrm.lookAt.lookAt(lookTarget);
+                    } catch(e) {}
+                }
+
+                currentVrm.update(dt);
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // Blink animation
+        let isBlinking = false;
+        function doBlink(em) {
+            if (!em || isBlinking) return;
+            isBlinking = true;
+            let progress = 0;
+            
+            const anim = setInterval(() => {
+                progress += 0.2;
+                if (progress <= 1) {
+                    em.setValue('blink', progress);
+                } else if (progress <= 2) {
+                    em.setValue('blink', 2 - progress);
+                } else {
+                    em.setValue('blink', 0);
+                    isBlinking = false;
+                    clearInterval(anim);
+                }
+            }, 25);
+        }
+    </script>
+</body>
+</html>

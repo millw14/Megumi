@@ -1,0 +1,30 @@
+# Megumi - Dependencies
+# Install with: pip install -r requirements.txt
+
+# === Core UI ===
+PySide6>=6.5.0
+PySide6-WebEngine>=6.5.0
+
+# === Screen Capture & Vision (Phase 2) ===
+mss>=9.0.0                    # Fast screen capture
+opencv-python>=4.8.0          # Image processing
+numpy>=1.24.0                 # Array operations
+
+# === OCR (Phase 2) ===
+easyocr>=1.7.0                # Text recognition
+# pytesseract>=0.3.10         # Alternative OCR (optional)
+
+# === UI Detection (Phase 3) ===
+# ultralytics>=8.0.0          # YOLO for UI detection (optional)
+
+# === PC Control (Phase 5) ===
+pyautogui>=0.9.54             # Mouse & keyboard automation
+# pygetwindow>=0.0.9          # Window manipulation (optional)
+
+# === Utilities ===
+pillow>=10.0.0                # Image handling
+requests>=2.31.0              # HTTP requests
+
+# === Development ===
+# pytest>=7.4.0               # Testing (optional)
+# black>=23.0.0               # Code formatting (optional)

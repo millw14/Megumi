@@ -1,0 +1,60 @@
+# Megumi .gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+ENV/
+*.egg-info/
+dist/
+build/
+*.egg
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.cursor/
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Local config
+config/local_settings.py
+.env
+.env.local
+
+# Model files (too large for git)
+# Uncomment if you don't want to track VRM files
+# assets/models/*.vrm
+# assets/models/*.glb
+
+# Screenshots (generated)
+assets/screenshots/*.png
+assets/screenshots/*.gif
+!assets/screenshots/.gitkeep
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Data files (user patterns - sensitive)
+data/
+*.db
+*.sqlite
+*.pkl
+patterns/
