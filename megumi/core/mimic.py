@@ -1,164 +1,292 @@
 """
-Megumi Mimic Engine
-~~~~~~~~~~~~~~~~~~~
+mimic.py - Megumi's Actions
 
-Replays learned patterns to mimic user activity.
-This is the "hands" of Megumi.
-
-Status: Phase 5 (Planned)
+Activity mimicking system.
+She can replicate your actions when you're away.
 
 WARNING: This module can control your computer.
-Safety features are critical!
+Use with caution.
 """
 
-from dataclasses import dataclass
-from typing import Optional, Callable
-from enum import Enum
 import time
+from typing import List, Dict, Optional, Tuple
+from dataclasses import dataclass
+from enum import Enum
+
+try:
+    import pyautogui
+    PYAUTOGUI_AVAILABLE = True
+except ImportError:
+    PYAUTOGUI_AVAILABLE = False
+    print("[Mimic] pyautogui not installed - mimicking disabled")
+
+from .database import get_database
+from .learner import Pattern
 
 
-class MimicMode(Enum):
-    """Operating modes for the mimic engine"""
-    DISABLED = "disabled"      # No actions allowed
-    PREVIEW = "preview"        # Show what would happen, don't execute
-    CONFIRM = "confirm"        # Ask before each action
-    AUTONOMOUS = "autonomous"  # Full auto (dangerous!)
-
-
-class SafetyLevel(Enum):
-    """Safety restriction levels"""
-    PARANOID = "paranoid"   # Only whitelisted apps, no typing
-    CAUTIOUS = "cautious"   # No sensitive apps, limited typing
-    NORMAL = "normal"       # Blacklist only
-    UNRESTRICTED = "unrestricted"  # Full access (dangerous!)
+class ActionType(Enum):
+    """Types of actions Megumi can perform."""
+    CLICK = "click"
+    DOUBLE_CLICK = "double_click"
+    RIGHT_CLICK = "right_click"
+    TYPE = "type"
+    HOTKEY = "hotkey"
+    SCROLL = "scroll"
+    MOVE = "move"
+    WAIT = "wait"
 
 
 @dataclass
-class MimicAction:
-    """A single action to perform"""
-    action_type: str
-    target: dict
-    delay_before: float = 0.0
+class Action:
+    """Represents an action to perform."""
+    action_type: ActionType
+    target: Optional[str] = None
+    position: Optional[Tuple[int, int]] = None
+    value: Optional[str] = None
+    duration: float = 0.1
     
-    
-class MimicEngine:
+
+class MegumiMimic:
     """
-    Executes learned patterns to mimic user behavior.
+    Megumi's action execution engine.
     
-    Safety Features:
-    - Kill switch (Ctrl+Shift+Escape)
-    - Action whitelist/blacklist
-    - Sensitive area blocking
-    - Action logging
-    - Preview mode
-    - Confirmation dialogs
+    SAFETY: All actions require explicit approval by default.
     """
     
-    # Apps that should NEVER be automated
-    BLACKLIST_APPS = [
-        "banking", "bank", "paypal", "venmo", "cashapp",
-        "password", "1password", "lastpass", "bitwarden",
-        "authenticator", "2fa",
-    ]
-    
-    def __init__(self):
-        self._mode = MimicMode.DISABLED
-        self._safety_level = SafetyLevel.CAUTIOUS
-        self._kill_switch_pressed = False
-        self._action_log: list[dict] = []
-        self._whitelist: set[str] = set()
-        self._on_action_callback: Optional[Callable] = None
-    
-    @property
-    def mode(self) -> MimicMode:
-        return self._mode
-    
-    @mode.setter  
-    def mode(self, value: MimicMode):
-        if value == MimicMode.AUTONOMOUS:
-            print("WARNING: Autonomous mode enabled. Megumi can now control your PC!")
-        self._mode = value
-    
-    def register_kill_switch(self):
-        """Register global hotkey for emergency stop"""
-        # TODO: Implement with pynput or keyboard library
-        # Hotkey: Ctrl+Shift+Escape
-        pass
-    
-    def kill(self):
-        """Emergency stop - immediately halt all actions"""
-        self._kill_switch_pressed = True
-        self._mode = MimicMode.DISABLED
-        print("KILL SWITCH ACTIVATED - All actions stopped")
-    
-    def is_safe_target(self, target: str) -> bool:
-        """Check if target app/window is safe to interact with"""
-        target_lower = target.lower()
+    def __init__(self, safe_mode: bool = True):
+        """
+        Initialize mimic engine.
         
-        # Check blacklist
-        for blocked in self.BLACKLIST_APPS:
-            if blocked in target_lower:
+        Args:
+            safe_mode: If True, requires approval for each action
+        """
+        self.safe_mode = safe_mode
+        self.is_enabled = False
+        self.db = get_database()
+        
+        # Safety settings
+        self.allowed_apps: List[str] = []  # Whitelist of apps Megumi can interact with
+        self.blocked_regions: List[Tuple[int, int, int, int]] = []  # Screen regions to avoid
+        self.max_actions_per_minute = 30
+        
+        self._action_count = 0
+        self._last_action_time = 0
+        
+        if not PYAUTOGUI_AVAILABLE:
+            print("[Mimic] pyautogui required for mimicking. Install with: pip install pyautogui")
+    
+    # ==================== SAFETY ====================
+    
+    def enable(self, confirm: bool = False):
+        """
+        Enable mimic mode.
+        
+        Args:
+            confirm: Must be True to actually enable (prevents accidental enabling)
+        """
+        if not confirm:
+            print("[Mimic] You must pass confirm=True to enable mimicking")
+            return
+        
+        if not PYAUTOGUI_AVAILABLE:
+            print("[Mimic] Cannot enable - pyautogui not installed")
+            return
+        
+        self.is_enabled = True
+        pyautogui.FAILSAFE = True  # Move mouse to corner to abort
+        print("[Mimic] Enabled - Move mouse to corner to emergency stop")
+    
+    def disable(self):
+        """Disable mimic mode."""
+        self.is_enabled = False
+        print("[Mimic] Disabled")
+    
+    def add_allowed_app(self, app_name: str):
+        """Add an app to the whitelist."""
+        if app_name not in self.allowed_apps:
+            self.allowed_apps.append(app_name)
+    
+    def remove_allowed_app(self, app_name: str):
+        """Remove an app from the whitelist."""
+        if app_name in self.allowed_apps:
+            self.allowed_apps.remove(app_name)
+    
+    def add_blocked_region(self, x: int, y: int, w: int, h: int):
+        """Add a screen region that Megumi cannot click."""
+        self.blocked_regions.append((x, y, w, h))
+    
+    def _is_safe_position(self, x: int, y: int) -> bool:
+        """Check if a position is safe to interact with."""
+        for rx, ry, rw, rh in self.blocked_regions:
+            if rx <= x <= rx + rw and ry <= y <= ry + rh:
                 return False
+        return True
+    
+    def _check_rate_limit(self) -> bool:
+        """Check if we're within rate limit."""
+        now = time.time()
+        if now - self._last_action_time > 60:
+            self._action_count = 0
         
-        # Check whitelist if in paranoid mode
-        if self._safety_level == SafetyLevel.PARANOID:
-            return target in self._whitelist
+        if self._action_count >= self.max_actions_per_minute:
+            print("[Mimic] Rate limit exceeded")
+            return False
         
         return True
     
-    def execute_action(self, action: MimicAction) -> bool:
-        """Execute a single mimic action"""
-        if self._kill_switch_pressed:
+    # ==================== ACTIONS ====================
+    
+    def execute(self, action: Action) -> bool:
+        """
+        Execute a single action.
+        
+        Args:
+            action: The action to perform
+            
+        Returns:
+            True if action was executed successfully
+        """
+        if not self.is_enabled:
+            print("[Mimic] Not enabled - action blocked")
             return False
         
-        if self._mode == MimicMode.DISABLED:
+        if not PYAUTOGUI_AVAILABLE:
             return False
         
-        # Safety check
-        target_name = action.target.get("window", "")
-        if not self.is_safe_target(target_name):
-            self._log_action(action, "BLOCKED", "Unsafe target")
+        if not self._check_rate_limit():
             return False
         
-        # Preview mode - just log
-        if self._mode == MimicMode.PREVIEW:
-            self._log_action(action, "PREVIEW", "Would execute")
-            if self._on_action_callback:
-                self._on_action_callback(action, "preview")
+        # Check position safety
+        if action.position:
+            x, y = action.position
+            if not self._is_safe_position(x, y):
+                print(f"[Mimic] Position ({x}, {y}) is in blocked region")
+                return False
+        
+        try:
+            self._perform_action(action)
+            self._action_count += 1
+            self._last_action_time = time.time()
+            
+            # Log action
+            self.db.save_action(
+                action_type=action.action_type.value,
+                target=action.target,
+                position=action.position,
+                value=action.value,
+                context={'mimic': True}
+            )
+            
             return True
-        
-        # Confirm mode - ask user
-        if self._mode == MimicMode.CONFIRM:
-            # TODO: Show confirmation dialog
-            pass
-        
-        # Execute the action
-        time.sleep(action.delay_before)
-        success = self._do_action(action)
-        self._log_action(action, "EXECUTED" if success else "FAILED")
-        
-        return success
+            
+        except Exception as e:
+            print(f"[Mimic] Action failed: {e}")
+            return False
     
-    def _do_action(self, action: MimicAction) -> bool:
-        """Actually perform the action"""
-        # TODO: Implement with pyautogui
-        # - click: pyautogui.click(x, y)
-        # - type: pyautogui.typewrite(text)
-        # - scroll: pyautogui.scroll(amount)
-        # - hotkey: pyautogui.hotkey(*keys)
-        return False
+    def _perform_action(self, action: Action):
+        """Actually perform the action using pyautogui."""
+        at = action.action_type
+        
+        if at == ActionType.CLICK:
+            if action.position:
+                pyautogui.click(action.position[0], action.position[1])
+            else:
+                pyautogui.click()
+                
+        elif at == ActionType.DOUBLE_CLICK:
+            if action.position:
+                pyautogui.doubleClick(action.position[0], action.position[1])
+            else:
+                pyautogui.doubleClick()
+                
+        elif at == ActionType.RIGHT_CLICK:
+            if action.position:
+                pyautogui.rightClick(action.position[0], action.position[1])
+            else:
+                pyautogui.rightClick()
+                
+        elif at == ActionType.TYPE:
+            if action.value:
+                pyautogui.write(action.value, interval=0.02)
+                
+        elif at == ActionType.HOTKEY:
+            if action.value:
+                keys = action.value.split('+')
+                pyautogui.hotkey(*keys)
+                
+        elif at == ActionType.SCROLL:
+            amount = int(action.value) if action.value else 3
+            if action.position:
+                pyautogui.scroll(amount, action.position[0], action.position[1])
+            else:
+                pyautogui.scroll(amount)
+                
+        elif at == ActionType.MOVE:
+            if action.position:
+                pyautogui.moveTo(action.position[0], action.position[1], 
+                               duration=action.duration)
+                
+        elif at == ActionType.WAIT:
+            time.sleep(action.duration)
     
-    def _log_action(self, action: MimicAction, status: str, note: str = ""):
-        """Log an action for audit trail"""
-        import datetime
-        self._action_log.append({
-            "timestamp": datetime.datetime.now().isoformat(),
-            "action": action.action_type,
-            "target": action.target,
-            "status": status,
-            "note": note
-        })
+    def execute_sequence(self, actions: List[Action], 
+                        delay_between: float = 0.5) -> int:
+        """
+        Execute a sequence of actions.
+        
+        Args:
+            actions: List of actions to perform
+            delay_between: Seconds to wait between actions
+            
+        Returns:
+            Number of successfully executed actions
+        """
+        executed = 0
+        
+        for action in actions:
+            if self.execute(action):
+                executed += 1
+            time.sleep(delay_between)
+        
+        return executed
     
-    def get_action_log(self) -> list[dict]:
-        """Get the action audit log"""
-        return self._action_log.copy()
+    # ==================== PATTERN REPLAY ====================
+    
+    def replay_pattern(self, pattern: Pattern) -> bool:
+        """
+        Replay a learned pattern.
+        
+        Args:
+            pattern: The pattern to replay
+            
+        Returns:
+            True if pattern was replayed successfully
+        """
+        if not pattern.actions:
+            return False
+        
+        actions = []
+        for action_dict in pattern.actions:
+            action_type = ActionType(action_dict.get('action', 'wait'))
+            action = Action(
+                action_type=action_type,
+                target=action_dict.get('target'),
+                position=tuple(action_dict['position']) if action_dict.get('position') else None,
+                value=action_dict.get('value'),
+                duration=action_dict.get('duration', 0.1)
+            )
+            actions.append(action)
+        
+        executed = self.execute_sequence(actions)
+        return executed == len(actions)
+
+
+# Global instance
+_mimic_instance = None
+
+def get_mimic() -> MegumiMimic:
+    """Get or create the global mimic instance."""
+    global _mimic_instance
+    if _mimic_instance is None:
+        _mimic_instance = MegumiMimic(safe_mode=True)
+    return _mimic_instance

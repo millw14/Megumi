@@ -36,6 +36,8 @@
         let time = 0;
         let blinkTimer = 0;
         let nextBlink = 3;
+        let isWatching = false;
+        let watchingGlow = null;
 
         // Initialize
         init();
@@ -135,6 +137,34 @@
                 mouseX = x;
                 mouseY = y;
             };
+
+            // Watching mode toggle (from Python)
+            window.setWatchingMode = (watching) => {
+                isWatching = watching;
+                if (watching) {
+                    // Add subtle glow effect when watching
+                    if (!watchingGlow) {
+                        const glowGeo = new THREE.RingGeometry(0.8, 0.85, 32);
+                        const glowMat = new THREE.MeshBasicMaterial({
+                            color: 0xff6b9d,
+                            transparent: true,
+                            opacity: 0.3,
+                            side: THREE.DoubleSide
+                        });
+                        watchingGlow = new THREE.Mesh(glowGeo, glowMat);
+                        watchingGlow.rotation.x = -Math.PI / 2;
+                        watchingGlow.position.y = 0.02;
+                        scene.add(watchingGlow);
+                    }
+                    watchingGlow.visible = true;
+                    console.log('Watching mode: ON');
+                } else {
+                    if (watchingGlow) {
+                        watchingGlow.visible = false;
+                    }
+                    console.log('Watching mode: OFF');
+                }
+            };
         }
 
         function animate() {
@@ -191,6 +221,12 @@
                     blinkTimer = 0;
                     nextBlink = 2 + Math.random() * 4;
                     doBlink(em);
+                }
+
+                // === WATCHING MODE GLOW ===
+                if (watchingGlow && watchingGlow.visible) {
+                    watchingGlow.material.opacity = 0.2 + Math.sin(time * 3) * 0.15;
+                    watchingGlow.scale.setScalar(1 + Math.sin(time * 2) * 0.05);
                 }
 
                 // === CURSOR TRACKING ===

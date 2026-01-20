@@ -1,14 +1,17 @@
 """
-Megumi Core Module
-~~~~~~~~~~~~~~~~~~
-
-Contains the brain of Megumi:
-- Watcher: Screen monitoring and capture
-- Learner: Pattern recognition and learning
-- Mimic: Activity replay and automation
+Megumi Core - The brain and eyes.
 """
 
-# Future imports when modules are implemented:
-# from megumi.core.watcher import ScreenWatcher
-# from megumi.core.learner import PatternLearner  
-# from megumi.core.mimic import MimicEngine
+from .database import MegumiDatabase, get_database
+from .watcher import ScreenWatcher, get_watcher
+from .ocr import ScreenReader, TextResult, get_reader
+from .learner import MegumiLearner, Pattern, get_learner
+from .mimic import MegumiMimic, Action, ActionType, get_mimic
+
+__all__ = [
+    'MegumiDatabase', 'get_database',
+    'ScreenWatcher', 'get_watcher',
+    'ScreenReader', 'TextResult', 'get_reader',
+    'MegumiLearner', 'Pattern', 'get_learner',
+    'MegumiMimic', 'Action', 'ActionType', 'get_mimic'
+]

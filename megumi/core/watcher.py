@@ -1,92 +1,254 @@
 """
-Megumi Screen Watcher
-~~~~~~~~~~~~~~~~~~~~~
+watcher.py - Megumi's Eyes
 
-Monitors the screen to see what the user is doing.
-This is the "eyes" of Megumi.
-
-Status: Phase 2 (Coming Soon)
+Screen capture and monitoring system.
+She sees everything. Always watching.
 """
 
-from dataclasses import dataclass
-from typing import Optional, Tuple
-import threading
+import mss
+import mss.tools
+import numpy as np
+from PIL import Image
+import io
 import time
-
-
-@dataclass
-class ScreenRegion:
-    """Defines a region of the screen to watch"""
-    x: int
-    y: int
-    width: int
-    height: int
-    name: str = "unnamed"
+import threading
+from datetime import datetime
+from typing import Optional, Callable, Tuple
+import ctypes
+from ctypes import wintypes
 
 
 class ScreenWatcher:
-    """
-    Watches the screen and captures what Megumi sees.
-    
-    Features (planned):
-    - Full screen capture
-    - Region-specific monitoring
-    - Change detection
-    - OCR text extraction
-    - UI element recognition
-    """
+    """Captures and monitors screen content."""
     
     def __init__(self):
-        self._running = False
-        self._thread: Optional[threading.Thread] = None
+        self.sct = mss.mss()
+        self.is_watching = False
+        self._watch_thread = None
+        self._callbacks = []
+        self._last_capture = None
         self._capture_interval = 1.0  # seconds
-        self._regions: list[ScreenRegion] = []
+        
+    @property
+    def monitors(self) -> list:
+        """Get list of available monitors."""
+        return self.sct.monitors
     
-    def add_watch_region(self, region: ScreenRegion):
-        """Add a specific region to monitor"""
-        self._regions.append(region)
+    @property
+    def primary_monitor(self) -> dict:
+        """Get primary monitor info."""
+        # monitors[0] is the virtual screen (all monitors combined)
+        # monitors[1] is usually the primary monitor
+        return self.sct.monitors[1] if len(self.sct.monitors) > 1 else self.sct.monitors[0]
     
-    def start(self):
-        """Start watching the screen"""
-        if self._running:
+    def capture_screen(self, monitor: int = 1) -> np.ndarray:
+        """
+        Capture the entire screen or a specific monitor.
+        
+        Args:
+            monitor: Monitor index (0 = all, 1 = primary, 2+ = secondary)
+            
+        Returns:
+            numpy array of the screenshot (BGRA format)
+        """
+        mon = self.sct.monitors[monitor]
+        screenshot = self.sct.grab(mon)
+        
+        # Convert to numpy array
+        img = np.array(screenshot)
+        self._last_capture = img
+        
+        return img
+    
+    def capture_region(self, x: int, y: int, width: int, height: int) -> np.ndarray:
+        """
+        Capture a specific region of the screen.
+        
+        Args:
+            x, y: Top-left corner coordinates
+            width, height: Region dimensions
+            
+        Returns:
+            numpy array of the screenshot
+        """
+        region = {"left": x, "top": y, "width": width, "height": height}
+        screenshot = self.sct.grab(region)
+        return np.array(screenshot)
+    
+    def capture_as_pil(self, monitor: int = 1) -> Image.Image:
+        """Capture screen and return as PIL Image."""
+        img_array = self.capture_screen(monitor)
+        # Convert BGRA to RGB
+        img_rgb = img_array[:, :, :3][:, :, ::-1]
+        return Image.fromarray(img_rgb)
+    
+    def capture_as_bytes(self, monitor: int = 1, format: str = 'PNG') -> bytes:
+        """Capture screen and return as bytes."""
+        img = self.capture_as_pil(monitor)
+        buffer = io.BytesIO()
+        img.save(buffer, format=format)
+        return buffer.getvalue()
+    
+    def save_capture(self, filepath: str, monitor: int = 1):
+        """Save screenshot to file."""
+        img = self.capture_as_pil(monitor)
+        img.save(filepath)
+        print(f"[Watcher] Saved screenshot to {filepath}")
+    
+    # ==================== ACTIVE WINDOW ====================
+    
+    def get_active_window(self) -> Tuple[str, str]:
+        """
+        Get the currently active window info.
+        
+        Returns:
+            Tuple of (window_title, process_name)
+        """
+        try:
+            # Windows API
+            hwnd = ctypes.windll.user32.GetForegroundWindow()
+            
+            # Get window title
+            length = ctypes.windll.user32.GetWindowTextLengthW(hwnd)
+            buf = ctypes.create_unicode_buffer(length + 1)
+            ctypes.windll.user32.GetWindowTextW(hwnd, buf, length + 1)
+            title = buf.value
+            
+            # Get process name
+            pid = wintypes.DWORD()
+            ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+            
+            process_name = self._get_process_name(pid.value)
+            
+            return (title, process_name)
+        except Exception as e:
+            print(f"[Watcher] Error getting active window: {e}")
+            return ("Unknown", "Unknown")
+    
+    def _get_process_name(self, pid: int) -> str:
+        """Get process name from PID."""
+        try:
+            import psutil
+            process = psutil.Process(pid)
+            return process.name()
+        except:
+            return "Unknown"
+    
+    # ==================== CONTINUOUS WATCHING ====================
+    
+    def add_callback(self, callback: Callable[[np.ndarray, dict], None]):
+        """
+        Add a callback for when new captures are made.
+        
+        Callback receives: (image_array, metadata_dict)
+        """
+        self._callbacks.append(callback)
+    
+    def remove_callback(self, callback: Callable):
+        """Remove a callback."""
+        if callback in self._callbacks:
+            self._callbacks.remove(callback)
+    
+    def start_watching(self, interval: float = 1.0, monitor: int = 1):
+        """
+        Start continuous screen watching.
+        
+        Args:
+            interval: Seconds between captures
+            monitor: Which monitor to watch
+        """
+        if self.is_watching:
+            print("[Watcher] Already watching")
             return
         
-        self._running = True
-        self._thread = threading.Thread(target=self._watch_loop, daemon=True)
-        self._thread.start()
+        self._capture_interval = interval
+        self.is_watching = True
+        
+        def watch_loop():
+            print(f"[Watcher] Started watching (interval: {interval}s)")
+            while self.is_watching:
+                try:
+                    # Capture screen
+                    img = self.capture_screen(monitor)
+                    
+                    # Get window info
+                    title, process = self.get_active_window()
+                    
+                    metadata = {
+                        'timestamp': datetime.now().isoformat(),
+                        'window_title': title,
+                        'process_name': process,
+                        'monitor': monitor,
+                        'resolution': (img.shape[1], img.shape[0])
+                    }
+                    
+                    # Notify callbacks
+                    for callback in self._callbacks:
+                        try:
+                            callback(img, metadata)
+                        except Exception as e:
+                            print(f"[Watcher] Callback error: {e}")
+                    
+                    time.sleep(interval)
+                    
+                except Exception as e:
+                    print(f"[Watcher] Watch loop error: {e}")
+                    time.sleep(interval)
+            
+            print("[Watcher] Stopped watching")
+        
+        self._watch_thread = threading.Thread(target=watch_loop, daemon=True)
+        self._watch_thread.start()
     
-    def stop(self):
-        """Stop watching"""
-        self._running = False
-        if self._thread:
-            self._thread.join(timeout=2.0)
+    def stop_watching(self):
+        """Stop continuous watching."""
+        self.is_watching = False
+        if self._watch_thread:
+            self._watch_thread.join(timeout=2)
+            self._watch_thread = None
     
-    def _watch_loop(self):
-        """Main watching loop"""
-        while self._running:
-            # TODO: Implement actual screen capture
-            # - Use mss for fast capture
-            # - Process with OpenCV
-            # - Extract text with EasyOCR
-            # - Detect UI elements
-            time.sleep(self._capture_interval)
+    def set_interval(self, interval: float):
+        """Change capture interval while watching."""
+        self._capture_interval = interval
     
-    def capture_full_screen(self) -> Optional[bytes]:
-        """Capture the entire screen"""
-        # TODO: Implement with mss
-        pass
+    # ==================== CHANGE DETECTION ====================
     
-    def capture_region(self, region: ScreenRegion) -> Optional[bytes]:
-        """Capture a specific region"""
-        # TODO: Implement with mss
-        pass
+    def detect_change(self, img1: np.ndarray, img2: np.ndarray, 
+                      threshold: float = 0.1) -> Tuple[bool, float]:
+        """
+        Detect if significant change occurred between two captures.
+        
+        Args:
+            img1, img2: Screenshot arrays to compare
+            threshold: Percentage of pixels that must differ (0.0 to 1.0)
+            
+        Returns:
+            Tuple of (has_changed, change_percentage)
+        """
+        if img1.shape != img2.shape:
+            return (True, 1.0)
+        
+        # Calculate difference
+        diff = np.abs(img1.astype(float) - img2.astype(float))
+        
+        # Consider a pixel changed if any channel differs by more than 10
+        changed_pixels = np.any(diff > 10, axis=2)
+        change_ratio = np.mean(changed_pixels)
+        
+        return (change_ratio > threshold, change_ratio)
     
-    def detect_changes(self, previous: bytes, current: bytes) -> bool:
-        """Detect if significant changes occurred"""
-        # TODO: Implement with OpenCV
-        pass
-    
-    def extract_text(self, image: bytes) -> list[str]:
-        """Extract text from captured image"""
-        # TODO: Implement with EasyOCR
-        pass
+    def close(self):
+        """Clean up resources."""
+        self.stop_watching()
+        self.sct.close()
+
+
+# Global instance
+_watcher_instance = None
+
+def get_watcher() -> ScreenWatcher:
+    """Get or create the global watcher instance."""
+    global _watcher_instance
+    if _watcher_instance is None:
+        _watcher_instance = ScreenWatcher()
+    return _watcher_instance

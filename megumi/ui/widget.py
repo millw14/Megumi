@@ -4,6 +4,8 @@ Megumi Desktop Widget
 
 The floating, transparent, always-on-top window
 that displays Megumi on your desktop.
+
+Now with Phase 2: She watches and learns.
 """
 
 import sys
@@ -19,6 +21,11 @@ from PySide6.QtCore import Qt, QPoint, QUrl, QTimer
 from PySide6.QtGui import QAction, QCursor
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEngineSettings
+
+# Phase 2 imports
+from ..core.database import get_database
+from ..core.watcher import get_watcher
+from ..core.learner import get_learner
 
 
 class SilentHTTPHandler(http.server.SimpleHTTPRequestHandler):
@@ -42,6 +49,7 @@ class MegumiWidget(QWidget):
     - Draggable anywhere
     - VRM character with cursor tracking
     - Right-click context menu
+    - Screen watching and learning (Phase 2)
     """
     
     def __init__(
@@ -60,6 +68,18 @@ class MegumiWidget(QWidget):
         self._megumi_root = Path(__file__).parent.parent.parent.resolve()
         self._assets_path = self._megumi_root / "assets"
         self._vrm_path = self._assets_path / "models" / "megumi.vrm"
+        
+        # Phase 2: Initialize watching and learning
+        self._is_watching = False
+        self._db = get_database()
+        self._watcher = get_watcher()
+        self._learner = get_learner()
+        
+        # Connect watcher to learner
+        self._learner.watcher = self._watcher
+        
+        # Set up watcher callback
+        self._watcher.add_callback(self._on_screen_capture)
         
         # Window setup
         self.setWindowTitle("Megumi")
@@ -102,6 +122,9 @@ class MegumiWidget(QWidget):
         self._cursor_timer = QTimer(self)
         self._cursor_timer.timeout.connect(self._update_cursor)
         self._cursor_timer.start(16)  # ~60 FPS
+        
+        print("[Megumi] Widget initialized")
+        print(f"[Megumi] Database: {self._db.db_path}")
     
     def _start_server(self):
         """Start local HTTP server for assets"""
@@ -137,6 +160,55 @@ class MegumiWidget(QWidget):
         js = f"if(window.setGlobalMouse) window.setGlobalMouse({norm_x}, {norm_y});"
         self._web.page().runJavaScript(js)
     
+    # ==================== PHASE 2: WATCHING ====================
+    
+    def _on_screen_capture(self, image, metadata):
+        """Callback when screen is captured"""
+        self._learner.observe(image, metadata)
+    
+    def start_watching(self, interval: float = 2.0):
+        """Start watching the screen"""
+        if self._is_watching:
+            return
+        
+        self._is_watching = True
+        self._learner.start_learning()
+        self._watcher.start_watching(interval=interval)
+        
+        # Visual feedback - make Megumi blink faster or show alert
+        js = "if(window.setWatchingMode) window.setWatchingMode(true);"
+        self._web.page().runJavaScript(js)
+        
+        print("[Megumi] Started watching...")
+    
+    def stop_watching(self):
+        """Stop watching the screen"""
+        if not self._is_watching:
+            return
+        
+        self._is_watching = False
+        self._watcher.stop_watching()
+        self._learner.stop_learning()
+        
+        # Visual feedback
+        js = "if(window.setWatchingMode) window.setWatchingMode(false);"
+        self._web.page().runJavaScript(js)
+        
+        print("[Megumi] Stopped watching")
+    
+    def toggle_watching(self):
+        """Toggle watching mode"""
+        if self._is_watching:
+            self.stop_watching()
+        else:
+            self.start_watching()
+    
+    def get_stats(self):
+        """Get learning statistics"""
+        return self._db.get_stats()
+    
+    # ==================== MENU ====================
+    
     def _show_menu(self, pos):
         """Show right-click menu"""
         menu = QMenu(self)
@@ -164,6 +236,21 @@ class MegumiWidget(QWidget):
             }
         """)
         
+        # Watching toggle
+        watch_text = "Stop Watching" if self._is_watching else "Start Watching"
+        watch_action = menu.addAction(watch_text)
+        watch_action.triggered.connect(self.toggle_watching)
+        
+        # Stats
+        stats = self.get_stats()
+        stats_action = menu.addAction(
+            f"Observations: {stats['total_observations']} | "
+            f"Patterns: {stats['total_patterns']}"
+        )
+        stats_action.setEnabled(False)
+        
+        menu.addSeparator()
+        
         # Positions
         menu.addAction("Move: Top-Left", lambda: self.move(20, 20))
         menu.addAction("Move: Top-Right", lambda: self.move(
@@ -175,9 +262,16 @@ class MegumiWidget(QWidget):
         
         # Quit
         quit_action = menu.addAction("Quit Megumi")
-        quit_action.triggered.connect(QApplication.quit)
+        quit_action.triggered.connect(self._shutdown)
         
         menu.exec(self.mapToGlobal(pos))
+    
+    def _shutdown(self):
+        """Clean shutdown"""
+        self.stop_watching()
+        self._db.close()
+        self._watcher.close()
+        QApplication.quit()
     
     # Drag support
     def mousePressEvent(self, event):
@@ -189,3 +283,8 @@ class MegumiWidget(QWidget):
         if event.buttons() == Qt.LeftButton:
             self.move(event.globalPosition().toPoint() - self._drag_pos)
             event.accept()
+    
+    def closeEvent(self, event):
+        """Handle window close"""
+        self._shutdown()
+        event.accept()
