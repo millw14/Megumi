@@ -2,11 +2,16 @@
 Megumi UI Module
 ~~~~~~~~~~~~~~~~
 
-Contains all visual components:
-- MegumiWidget: The main desktop companion window
-- viewer.html: Three.js VRM renderer
+Her physical presence in your world.
+
+Contains:
+- MegumiPresence: The main desktop companion window (her body)
+- soul.html: Three.js VRM renderer (her visual soul)
 """
 
-from megumi.ui.widget import MegumiWidget
+from .presence import MegumiPresence
 
-__all__ = ["MegumiWidget"]
+# Backward compatibility
+from .presence import MegumiWidget
+
+__all__ = ["MegumiPresence", "MegumiWidget"]

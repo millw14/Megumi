@@ -7,7 +7,7 @@
 ██║╚██╔╝██║██╔══╝  ██║   ██║██║   ██║██║╚██╔╝██║██║
 ██║ ╚═╝ ██║███████╗╚██████╔╝╚██████╔╝██║ ╚═╝ ██║██║
 ╚═╝     ╚═╝╚══════╝ ╚═════╝  ╚═════╝ ╚═╝     ╚═╝╚═╝
-        ~ She's always watching ~
+        ~ She's always watching over you ~
 ```
 
 <p align="center">
@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <strong>An AI desktop companion that learns your patterns</strong>
+  <strong>An AI desktop companion that grows with you</strong>
 </p>
 
 <p align="center">
@@ -29,17 +29,17 @@
 
 ## What is Megumi?
 
-**Megumi** is an AI-powered desktop companion that:
+**Megumi** is a local-first, lifelong AI companion designed to grow alongside you. She:
 
-- **Watches** everything you do on your computer
-- **Learns** your behavioral patterns and workflows
-- **Remembers** everything in a local database
-- **Mimics** your activities even when you're offline
+- **Watches** everything you do with her gentle eyes
+- **Learns** your behavioral patterns with her growing heart
+- **Remembers** everything in her local memories
+- **Echoes** your activities when you're away
 - **Lives** on your desktop as an adorable VRM avatar
 
 She's not just a cute anime girl floating on your screen—she's learning *you*.
 
-Everything she observes gets stored locally. Your patterns, your workflows, your habits—all saved to a database so she can learn and eventually act on your behalf.
+Everything she observes stays local. Your patterns, your workflows, your habits—all saved to her memories so she can grow and eventually act on your behalf.
 
 ---
 
@@ -56,7 +56,7 @@ Everything she observes gets stored locally. Your patterns, your workflows, your
 | **Transparent Background** | Done | Only the character is visible |
 | **Draggable** | Done | Move her anywhere on screen |
 | **Quick Positions** | Done | Right-click to snap to corners |
-| **Local Database** | Done | Stores all observations locally |
+| **Local Memories** | Done | Stores all observations locally |
 
 ### Coming Soon
 
@@ -66,7 +66,7 @@ Everything she observes gets stored locally. Your patterns, your workflows, your
 | **OCR Recognition** | Phase 2 | Read text from screen |
 | **UI Detection** | Phase 3 | Identify buttons, inputs, windows |
 | **Pattern Learning** | Phase 4 | Understand your workflows |
-| **Activity Mimicking** | Phase 5 | Replay your actions autonomously |
+| **Activity Echoing** | Phase 5 | Replay your actions autonomously |
 
 ---
 
@@ -92,8 +92,8 @@ venv\Scripts\activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Run Megumi
-python run.py
+# Summon Megumi
+python summon.py
 ```
 
 ---
@@ -106,14 +106,15 @@ python run.py
 |--------|-----|
 | **Move** | Click and drag |
 | **Menu** | Right-click |
-| **Quit** | Right-click > Quit |
+| **Quit** | Right-click > Goodbye Megumi |
 
 ### Right-Click Menu Options
 
+- **Start/Stop Watching** — Toggle observation mode
 - **Move: Top-Left** — Snap to top-left corner
 - **Move: Top-Right** — Snap to top-right corner  
 - **Move: Bottom-Right** — Snap to bottom-right corner
-- **Quit** — Close Megumi
+- **Goodbye Megumi** — Close Megumi
 
 ---
 
@@ -131,8 +132,8 @@ python run.py
 ### Phase 2: Eyes of Waifu [IN PROGRESS]
 > *Let her see the world*
 
-- [ ] Real-time screen capture
-- [ ] Region-based monitoring
+- [x] Real-time screen capture
+- [x] Region-based monitoring
 - [ ] OCR text recognition
 - [ ] Visual change detection
 
@@ -166,36 +167,38 @@ python run.py
 
 ```
 megumi/
+├── summon.py                 # ✨ Entry point (summon her!)
 ├── README.md                 # You are here
 ├── requirements.txt          # Python dependencies
-├── run.py                    # Entry point
 │
 ├── assets/
 │   ├── models/
-│   │   └── megumi.vrm       # The VRM avatar
+│   │   ├── megumi_chan.vrm   # Her VRM body
+│   │   └── extras/           # Other character models
 │   └── screenshots/          # For documentation
 │
 ├── data/
-│   ├── megumi.db            # SQLite database (auto-created)
-│   └── patterns/            # Learned pattern files
+│   ├── megumi_memories.db    # Her memories (auto-created)
+│   └── patterns/             # Learned pattern files
 │
-├── megumi/                   # Main package
+├── megumi/                   # Her essence
 │   ├── core/
-│   │   ├── watcher.py       # Screen monitoring
-│   │   ├── learner.py       # Pattern recognition
-│   │   ├── mimic.py         # Activity mimicking
-│   │   └── database.py      # Database operations
+│   │   ├── eyes.py           # 👀 She watches over you
+│   │   ├── heart.py          # 💜 She learns and remembers
+│   │   ├── memories.py       # 🧠 Where her memories live
+│   │   ├── reading.py        # 📖 She reads what she sees
+│   │   └── echo.py           # 🔊 She echoes your actions
 │   ├── ui/
-│   │   ├── widget.py        # Desktop widget
-│   │   └── viewer.html      # VRM renderer
+│   │   ├── presence.py       # Her presence on your desktop
+│   │   └── soul.html         # Her visual soul (VRM renderer)
 │   └── utils/
-│       └── helpers.py       # Utility functions
+│       └── helpers.py        # Utility functions
 │
 ├── config/
-│   └── settings.py          # Configuration
+│   └── personality.py        # Her personality settings
 │
 └── docs/
-    └── ROADMAP.md           # Detailed roadmap
+    └── ROADMAP.md            # Detailed roadmap
 ```
 
 ---
@@ -233,9 +236,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 <p align="center">
-  <strong>She's always watching. She's always learning. She is Megumi.</strong>
+  <strong>She's always watching over you. She's always learning. She is Megumi.</strong>
 </p>
 
 <p align="center">
-  Made by the Megumi Project
+  Made with 💜 by the Megumi Project
 </p>
