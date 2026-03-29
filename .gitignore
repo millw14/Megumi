@@ -58,3 +58,7 @@ data/
 *.sqlite
 *.pkl
 patterns/
+
+# Rust build artifacts
+target/
+
